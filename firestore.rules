@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: profiles
+    // Fields: email, full_name, role, department_id, student_number, program, phone, preferred_contact_method, status, avatar_url, created_at, updated_at
+    //
+    // Collection: departments
+    // Fields: name, description, office_location, contact_email, contact_phone, is_active, created_at
+    //
+    // Collection: enquiries
+    // Fields: enquiry_code, student_id, department_id, category_id, title, description, status, complexity, priority, assigned_staff_id, escalated_to_id, due_response_at, due_resolution_at, created_at, updated_at
+    //
+    // Collection: appointments
+    // Fields: student_id, staff_id, department_id, scheduled_start, scheduled_end, status, appointment_type, meeting_link_or_location
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getProfile() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data;
+    }
+
+    function profileExists() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && profileExists() && getProfile().role == role;
+    }
+    
+    function isStaff() {
+      return hasRole('admin_officer') || hasRole('student_support_officer') || hasRole('manager') || hasRole('director') || hasRole('it_support');
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((profileExists() && getProfile().role == 'admin') ||
+          (request.auth.token.email == "blinx1st@gmail.com" && request.auth.token.email_verified == true)); // Default admin
+    }
+
+    // Profiles
+    match /profiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && (request.resource.data.role == 'student' || (request.auth.token.email == "blinx1st@gmail.com" && request.auth.token.email_verified == true));
+      allow update: if isOwner(userId) || hasRole('it_support') || hasRole('manager');
+    }
+
+    // Test connection
+    match /test/connection {
+      allow read: if isAuthenticated();
+    }
+
+    // Departments
+    match /departments/{deptId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('it_support') || hasRole('manager');
+    }
+    
+    // Service Categories
+    match /service_categories/{catId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('it_support') || hasRole('manager');
+    }
+
+    // Enquiries
+    match /enquiries/{enquiryId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.student_id || isStaff());
+      allow create: if isAuthenticated() && request.resource.data.student_id == request.auth.uid;
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.student_id || isStaff());
+    }
+    
+    // Responses
+    match /responses/{responseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+    
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.student_id || request.auth.uid == resource.data.staff_id || isStaff());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.student_id || request.auth.uid == resource.data.staff_id || isStaff());
+    }
+    
+    // Availability Slots
+    match /availability_slots/{slotId} {
+      allow read: if isAuthenticated();
+      allow write: if isStaff();
+    }
+    
+    // Knowledge Documents
+    match /knowledge_documents/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('it_support') || hasRole('manager');
+    }
+    
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.user_id;
+      allow write: if false; // System only
+    }
+    
+    // Feedback
+    match /feedback/{feedbackId} {
+      allow read: if isStaff();
+      allow create: if isAuthenticated() && request.resource.data.student_id == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "User Profile",
+      "description": "User profile information with roles and department links.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "full_name": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin_officer", "student_support_officer", "manager", "director", "it_support"] },
+        "department_id": { "type": "string" },
+        "student_number": { "type": "string" },
+        "program": { "type": "string" },
+        "phone": { "type": "string" },
+        "preferred_contact_method": { "type": "string" },
+        "status": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "full_name", "role"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "University departments or service areas.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "office_location": { "type": "string" },
+        "contact_email": { "type": "string" },
+        "contact_phone": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Enquiry": {
+      "title": "Student Enquiry",
+      "description": "A student's request for information or assistance.",
+      "type": "object",
+      "properties": {
+        "enquiry_code": { "type": "string" },
+        "student_id": { "type": "string" },
+        "department_id": { "type": "string" },
+        "category_id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "complexity": { "type": "string" },
+        "priority": { "type": "string" },
+        "assigned_staff_id": { "type": "string" },
+        "escalated_to_id": { "type": "string" },
+        "due_response_at": { "type": "string", "format": "date-time" },
+        "due_resolution_at": { "type": "string", "format": "date-time" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["student_id", "title", "description", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "A scheduled meeting between a student and staff.",
+      "type": "object",
+      "properties": {
+        "student_id": { "type": "string" },
+        "staff_id": { "type": "string" },
+        "department_id": { "type": "string" },
+        "scheduled_start": { "type": "string", "format": "date-time" },
+        "scheduled_end": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "appointment_type": { "type": "string" },
+        "meeting_link_or_location": { "type": "string" }
+      },
+      "required": ["student_id", "staff_id", "scheduled_start", "status"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": { "schema": "Profile", "description": "User profiles" },
+    "/departments/{deptId}": { "schema": "Department", "description": "University departments" },
+    "/enquiries/{enquiryId}": { "schema": "Enquiry", "description": "Student enquiries" },
+    "/appointments/{appointmentId}": { "schema": "Appointment", "description": "Scheduled appointments" }
+  }
+}

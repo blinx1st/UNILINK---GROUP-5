@@ -1,0 +1,9 @@
+{
+  "name": "UniLink - ABC University Student Enquiry and Appointment System - Group 5",
+  "description": "A centralized student enquiry handling portal with AI triage, appointment booking, and role-based dashboards for ABC University.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
