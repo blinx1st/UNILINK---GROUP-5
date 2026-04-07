@@ -4,10 +4,17 @@ import { Send, Bot, User, Loader2, MessageSquarePlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 import { chatWithAI } from '../services/aiService';
+import { buildAIContext, ChatHistoryTurn } from '../services/aiContext';
+import { useAuth } from '../AuthContext';
+import { useDemoData } from '../DemoContext';
+
+const MAX_HISTORY_TURNS = 8;
 
 export default function AIChat() {
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Hello! I am UniLink AI. How can I help you with university services today?' }
+  const { profile } = useAuth();
+  const { students, enquiries, appointments, notifications } = useDemoData();
+  const [messages, setMessages] = useState<ChatHistoryTurn[]>([
+    { role: 'ai', text: 'Hello! I am UniLink AI. I can help using the UniLink records currently available for your account.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,15 +29,36 @@ export default function AIChat() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || !profile) return;
 
-    const userMsg = input;
+    const userMsg = input.trim();
+    const history = messages.slice(-MAX_HISTORY_TURNS);
+    const context = buildAIContext({
+      message: userMsg,
+      profile,
+      students,
+      enquiries,
+      appointments,
+      notifications,
+    });
+
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setLoading(true);
 
     try {
-      const text = await chatWithAI(userMsg);
+      const text = await chatWithAI({
+        message: userMsg,
+        history,
+        viewer: {
+          uid: profile.uid,
+          full_name: profile.full_name,
+          email: profile.email,
+          role: profile.role,
+        },
+        context,
+      });
+
       setMessages(prev => [...prev, { role: 'ai', text }]);
     } catch (error) {
       console.error('Chat Error:', error);
@@ -104,7 +132,7 @@ export default function AIChat() {
           </button>
         </div>
         <p className="text-[10px] text-center text-slate-400 mt-3 uppercase tracking-widest font-bold">
-          AI responses are for guidance only. Final decisions require staff review.
+          AI responses are grounded in your current UniLink demo data. Final decisions require staff review.
         </p>
       </form>
     </div>
